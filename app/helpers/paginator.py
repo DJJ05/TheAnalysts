@@ -24,12 +24,16 @@ class SignupMenu(menus.Menu):
         super().__init__(timeout=seconds, delete_message_after=True, clear_reactions_after=True, check_embeds=check_embeds, message=message)
         self.seconds = seconds
         self.creator = creator
+        self.cancelled = False
         self.participants = []
 
     def reaction_check(self, payload):
         if payload.member and payload.member.bot:
             return False
         return True
+
+    async def finalize(self, timed_out):
+        self._running = False
 
     async def send_initial_message(self, ctx, channel):
         embed = discord.Embed(
@@ -66,7 +70,21 @@ class SignupMenu(menus.Menu):
             await self.message.edit(embed=embed)
 
     @menus.button('\N{NO ENTRY SIGN}')
-    async def on_stop(self, payload):
+    async def on_cancel(self, payload):
+        if not payload.member:
+            return
+        if payload.member == self.creator:
+            self.cancelled = True
+            return self.stop()
+        try:
+            await self.message.remove_reaction(payload.emoji, payload.member)
+        except discord.Forbidden:
+            pass
+
+    @menus.button('\N{LARGE GREEN CIRCLE}')
+    async def on_start(self, payload):
+        if not payload.member:
+            return
         if payload.member == self.creator:
             return self.stop()
         try:
