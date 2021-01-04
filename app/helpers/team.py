@@ -4,7 +4,7 @@ import random
 
 
 class Team:
-    def __init__(self, members, channels, current_message) -> None:
+    def __init__(self, members, channels, current_message, faction) -> None:
         self.members = members
         self.health = 20 * len(members)
         self.generals = random.sample(members, 3) if len(members) > 3 else members
@@ -13,6 +13,7 @@ class Team:
         self.researched = []
         self.channels = channels
         self.current_message = current_message
+        self.faction = faction
 
     def __repr__(self) -> str:
         return self.__str__()

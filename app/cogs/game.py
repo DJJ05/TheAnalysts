@@ -125,6 +125,22 @@ class game(commands.Cog):
             'axistext': axistext
         }
 
+    @commands.max_concurrency(1, per=BucketType.channel)
+    @commands.cooldown(1, 15, BucketType.guild)
+    async def answer(self, ctx, answer):
+        if ctx.guild.id not in list(self.ongoing.keys()):
+            raise commands.BadArgument('Your guild doesn\'t have an ongoing game, or it hasn\'t started yet. Use `w!playgame` to start one.')
+        team = None
+        for team_ in self.ongoing[ctx.guild.id].values():
+            if ctx.author in team_.members:
+                team = team_
+        if not team:
+            raise commands.BadArgument('It looks like you\'re not currently participating in your guild\'s ongoing game.')
+        if ctx.author not in team.generals:
+            raise commands.BadArgument('You need to be a general on your team in order to register answers.')
+
+        # TODO: Validate answer against team.current_message.answer once current_message object created
+
     @commands.max_concurrency(1, per=BucketType.guild)
     @commands.command(aliases=['playgame', 'creategame'])
     async def makegame(self, ctx, time_until_end: TimeConverter = None):
@@ -157,9 +173,12 @@ class game(commands.Cog):
             return
         axis = random.sample(participants, round(len(participants) / 2))
         allies = list(set(participants) - set(axis))
+
+        # TODO: Add encryption as current_message object and use in class constructor
+
         channels = await self.maketeamchannels(category=category, axis=axis, allies=allies)
-        axis = Team(members=axis, channels=channels, current_message='stuff')
-        allies = Team(members=allies, channels=channels, current_message='stuff')
+        axis = Team(members=axis, channels=channels, current_message='stuff', faction='axis')
+        allies = Team(members=allies, channels=channels, current_message='stuff', faction='allies')
         for axi in axis.members:
             try:
                 await axi.send(
